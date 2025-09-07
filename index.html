@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Пухирцева ментальна карта — з фізикою та правильними лініями</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#07080d;--fg:#eef2f7;--muted:#a3aab7;--glass:rgba(255,255,255,.06);--ring:#2b2f40;
+      --accent1:#f472b6;--accent2:#60a5fa;--accent3:#34d399;--accent4:#f59e0b;--accent5:#a78bfa;--accent6:#22d3ee;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:
+      radial-gradient(1000px 600px at 15% -10%, #60a5fa22, transparent 60%),
+      radial-gradient(1100px 700px at 110% 110%, #f472b622, transparent 60%),
+      var(--bg);
+      color:var(--fg);font-family:Manrope,system-ui,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
+
+    /* HUD */
+    .hud{position:fixed;inset:14px auto auto 14px;z-index:40;display:flex;gap:10px;align-items:center}
+    .pill{display:flex;gap:10px;align-items:center;background:var(--glass);backdrop-filter:blur(8px);border:1px solid #ffffff18;padding:10px 12px;border-radius:14px}
+    .pill .t{font-weight:800;letter-spacing:.02em}
+    .btn{cursor:pointer;border:1px solid #ffffff18;border-radius:12px;padding:8px 10px;background:var(--glass);color:var(--fg)}
+
+    /* World */
+    #stage{position:absolute;inset:0}
+    #lines{position:absolute;inset:0;pointer-events:none}
+    #world{position:absolute;inset:0}
+
+    /* Bubbles */
+    .node{position:absolute;left:0;top:0;transform:translate(-50%,-50%);border-radius:999px;min-width:120px;min-height:120px;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px 16px;
+      background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.04));
+      color:var(--fg);border:1px solid #ffffff1a;box-shadow:0 10px 40px -16px rgba(0,0,0,.6), inset 0 1px 1px rgba(255,255,255,.06);user-select:none;
+      transition:box-shadow .2s ease, filter .2s ease}
+    .node:hover{filter:brightness(1.06);box-shadow:0 16px 60px -20px rgba(0,0,0,.7), inset 0 1px 1px rgba(255,255,255,.08)}
+    .node.small{min-width:auto;min-height:auto;padding:10px 12px;font-size:13px}
+    .title{font-weight:800;letter-spacing:-.01em}
+    .sub{font-size:12px;color:var(--muted);margin-top:4px}
+    .ring{position:absolute;inset:-3px;border-radius:inherit;border:2px solid transparent;pointer-events:none}
+    .c1{box-shadow:0 0 0 2px #f472b644 inset, 0 0 20px #f472b622}
+    .c2{box-shadow:0 0 0 2px #60a5fa44 inset, 0 0 20px #60a5fa22}
+    .c3{box-shadow:0 0 0 2px #34d39944 inset, 0 0 20px #34d39922}
+    .c4{box-shadow:0 0 0 2px #f59e0b44 inset, 0 0 20px #f59e0b22}
+    .c5{box-shadow:0 0 0 2px #a78bfa44 inset, 0 0 20px #a78bfa22}
+    .c6{box-shadow:0 0 0 2px #22d3ee44 inset, 0 0 20px #22d3ee22}
+
+    /* Micro-float (visual only; фізика керує позиціями) */
+    @keyframes float {0%,100%{transform:translate(-50%,-50%) translateY(0)}50%{transform:translate(-50%,-50%) translateY(-6px)}}
+    .float{animation:float 7s ease-in-out infinite}
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div class="pill"><strong class="t">Пухирцева карта</strong><span class="sub">клік по темі → підпухирці</span></div>
+    <button id="reset" class="btn">Скинути розкладку</button>
+  </div>
+
+  <div id="stage">
+    <canvas id="lines"></canvas>
+    <div id="world"></div>
+  </div>
+
+  <script>
+  // ==========================
+  // ДАНІ
+  // ==========================
+    const DATA = [
+    { id:'paris',  title:'Паризька мирна конференція (1919–1920)', color:'c1', points:[
+      'Мета: укласти мирні договори з переможеними країнами',
+      'Версальський договір: покарання Німеччини, репарації, демілітаризація Рейнської області',
+      'Сен‑Жерменський договір: розпад Австро‑Угорщини',
+      'Тріанонський договір: територіальні втрати Угорщини',
+      'Нейїський договір: територіальні втрати Болгарії',
+      'Севрський договір: розділ Османської імперії',
+      'Створено Лігу Націй — перша міжнародна організація безпеки'
+    ]},
+    { id:'wash',   title:'Вашингтонська конференція (1921–1922)', color:'c2', points:[
+      'Мета: обмеження морських озброєнь та вирішення проблем на Далекому Сході',
+      'Учасники: США, Велика Британія, Японія, Франція, Італія',
+      'Договір 5:5:3 — співвідношення флотів США, Британії та Японії',
+      'Принцип «відкритих дверей» щодо Китаю',
+      'Зниження ризику гонки озброєнь на морі'
+    ]},
+    { id:'genoa',  title:'Генуезька конференція (1922)', color:'c3', points:[
+      'Мета: відновлення економіки Європи після війни',
+      'Учасники: 29 держав, у т.ч. СРСР і Німеччина',
+      'Захід вимагав від СРСР визнати царські борги',
+      'СРСР прагнув кредитів і економічної співпраці',
+      'Результат: Рапалльський договір між СРСР і Німеччиною — співпраця поза Заходом'
+    ]},
+    { id:'laus',   title:'Лозаннська конференція (1922–1923)', color:'c4', points:[
+      'Мета: перегляд умов Севрського договору',
+      'Визнання незалежності Туреччини та її суверенітету',
+      'Лозаннський договір (1923): скасування принизливих умов для Туреччини',
+      'Встановлення сучасних кордонів Туреччини'
+    ]},
+    { id:'locarno',title:'Локарнська конференція (1925)', color:'c5', points:[
+      'Мета: гарантії безпеки в Європі',
+      'Німеччина гарантує західні кордони з Францією та Бельгією',
+      'Велика Британія та Італія — гаранти угод',
+      'Покращення відносин Франція–Німеччина',
+      'Німеччина приєднується до Ліги Націй (1926)',
+      'Спроба стабілізації міжнародних відносин у Європі'
+    ]},
+    { id:'hague',  title:'Гаазькі конференції (1929–1930)', color:'c6', points:[
+      'Мета: остаточне врегулювання німецьких репарацій',
+      'План Юнга (1929): зменшення суми та розтягнення виплат',
+      '1930: вивід союзних військ з Рейнської області',
+      'Значення: тимчасове полегшення для економіки Німеччини'
+    ]},
+    { id:'london',  title:'Лондонські конференції (1924, 1931)', color:'c1', points:[
+      '1924: план Дауеса — реструктуризація репарацій Німеччини, іноземні кредити',
+      '1931: перегляд умов через світову економічну кризу (мораторій Гувера)',
+      'Наслідок: тимчасове послаблення напруги, але проблеми залишилися'
+    ]},
+    { id:'kellogg', title:'Пакт Бріана—Келлога (1928)', color:'c2', points:[
+      'Мета: відмова від війни як інструменту національної політики',
+      'Підписанти: 15 країн (згодом — понад 60)',
+      'Значення: крок до колективної безпеки, хоча механізмів примусу майже не було'
+    ]},
+    { id:'geneva', title:'Комісія з роззброєння в Женеві (1925–1932)', color:'c3', points:[
+      'Підготовка до загальної конференції з роззброєння',
+      'Обговорення обмежень сухопутних озброєнь',
+      'Обмежений прогрес через суперечки між державами'
+    ]},
+    { id:'spa', title:'Конференція в Спа (1920)', color:'c4', points:[
+      'Розмір і графік німецьких репарацій (перед планом Дауеса)',
+      'Перерозподіл військово‑морських трофеїв Німеччини',
+      'Напруга між союзниками щодо підходів до Німеччини'
+    ]}
+  ];
+
+  // ==========================
+  // УТИЛІТИ
+  // ==========================
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+  function rand(min,max){ return Math.random()*(max-min)+min; }
+
+  // ==========================
+  // НОДИ / РЕБРА (модель)
+  // ==========================
+  const world = document.getElementById('world');
+  const canvas = document.getElementById('lines');
+  const ctx = canvas.getContext('2d');
+  let W = innerWidth, H = innerHeight; canvas.width=W; canvas.height=H;
+
+  const nodes = []; // {id,x,y,vx,vy,r,el,type,parent,children,open,fixed,color}
+  const edges = []; // {a,b,rest,k}
+
+  function makeNode({id,title,subtitle,color,type,parent,x,y,r=70,fixed=false,small=false}){
+    const el = document.createElement('div');
+    el.className = 'node ' + (small? 'small ': '') + 'float';
+    el.innerHTML = `<div class="title">${title}</div>${subtitle?`<div class="sub">${subtitle}</div>`:''}<div class="ring ${color||''}"></div>`;
+    world.appendChild(el);
+
+    const n = { id, x, y, vx:0, vy:0, r: small? 26 : (type==='root'? 90 : 70), el, type, parent, children:[], open:false, fixed, color };
+    nodes.push(n);
+
+    // початкова позиція
+    positionEl(n);
+
+    // перетягування конкретного вузла (не всього світу!)
+    let dragging = false, dx=0, dy=0;
+    el.addEventListener('pointerdown', (e)=>{
+      dragging = true; el.setPointerCapture(e.pointerId);
+      dx = e.clientX - n.x; dy = e.clientY - n.y; n.vx = n.vy = 0; n.fixed = true; // тимчасово фіксуємо під час драгу
+    });
+    el.addEventListener('pointermove', (e)=>{
+      if(!dragging) return; n.x = e.clientX - dx; n.y = e.clientY - dy; positionEl(n); });
+    el.addEventListener('pointerup', (e)=>{ dragging = false; el.releasePointerCapture(e.pointerId); if(n.type!== 'root') n.fixed = false; });
+
+    return n;
+  }
+
+  function positionEl(n){ n.el.style.left = (n.x) + 'px'; n.el.style.top = (n.y) + 'px'; }
+
+  function makeEdge(a,b,rest,k){ edges.push({a,b,rest,k}); }
+
+  // ==========================
+  // ПОБУДОВА СЦЕНИ
+  // ==========================
+  const center = makeNode({ id:'center', title:'Міжнародні конференції після Першої світової війни', subtitle:'1919–1930: договори, безпека, репарації', type:'root', x:W/2, y:H/2, fixed:true, r:100, color:'c2' });
+
+  const R = 260;
+  DATA.forEach((d,i)=>{
+    const a = -Math.PI/2 + i*(2*Math.PI/DATA.length);
+    const x = W/2 + Math.cos(a)*R;
+    const y = H/2 + Math.sin(a)*R;
+    const n = makeNode({ id:d.id, title:d.title, type:'topic', x,y, color:d.color });
+    n.data = d; // зберігаємо для створення дітей
+    makeEdge(center, n, 260, 0.02);
+
+    // клік → відкрити/закрити підпухирці
+    n.el.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      if(n.open){ closeChildren(n); } else { openChildren(n); }
+    });
+  });
+
+  function openChildren(parent){
+    const list = parent.data.points || [];
+    const base = Math.random()*Math.PI*2; const radius = 130;
+    list.forEach((text, i)=>{
+      const angle = base + i*(2*Math.PI/list.length);
+      const child = makeNode({ id: parent.id + '_c'+i, title:text, type:'point', parent:parent, x: parent.x + rand(-6,6), y: parent.y + rand(-6,6), small:true, color: parent.color });
+      parent.children.push(child);
+      makeEdge(parent, child, radius, 0.04);
+    });
+    parent.open = true;
+  }
+  function closeChildren(parent){
+    parent.children.forEach(c=>{
+      // видалити DOM
+      world.removeChild(c.el);
+      // прибрати ребра
+      for(let i=edges.length-1;i>=0;i--){ const e=edges[i]; if(e.a===parent && e.b===c) edges.splice(i,1); }
+      // прибрати з nodes
+      const idx = nodes.indexOf(c); if(idx>-1) nodes.splice(idx,1);
+    });
+    parent.children = []; parent.open = false;
+  }
+
+  // ==========================
+  // ФІЗИКА (проста, але стабільна)
+  // ==========================
+  const SPRING = 0.02;       // базова жорсткість (перевизначається у ребрах)
+  const REPULSION = 20000;   // сила відштовхування між усіма вузлами
+  const DAMPING = 0.85;      // демпфування швидкостей
+  const CENTER_PULL = 0.0008;// м'яке притягування до центру екрана
+
+  function stepPhysics(){
+    // Відштовхування (O(n^2), достатньо швидко для цієї кількості)
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const a = nodes[i], b = nodes[j];
+        let dx = a.x - b.x, dy = a.y - b.y; let dist2 = dx*dx + dy*dy; if(dist2===0){ dx=rand(-1,1); dy=rand(-1,1); dist2 = 1; }
+        const force = REPULSION / dist2; const d = Math.sqrt(dist2); const fx = force*dx/d, fy = force*dy/d;
+        if(!a.fixed){ a.vx += fx; a.vy += fy; }
+        if(!b.fixed){ b.vx -= fx; b.vy -= fy; }
+      }
+    }
+
+    // Пружини (ребра)
+    for(const e of edges){
+      const a = e.a, b = e.b; let dx = b.x - a.x, dy = b.y - a.y; const d = Math.max(0.01, Math.hypot(dx,dy));
+      const k = e.k ?? SPRING; const target = e.rest; const diff = d - target; const f = k * diff; const fx = f * (dx/d), fy = f * (dy/d);
+      if(!a.fixed){ a.vx += fx; a.vy += fy; }
+      if(!b.fixed){ b.vx -= fx; b.vy -= fy; }
+    }
+
+    // Легке притягування до центру екрану (щоб карта не "тіка")
+    const cx = W/2, cy = H/2;
+    for(const n of nodes){ if(n.fixed) continue; n.vx += (cx - n.x)*CENTER_PULL; n.vy += (cy - n.y)*CENTER_PULL; }
+
+    // Інтеграція + демпфування + межі
+    for(const n of nodes){
+      if(!n.fixed){ n.vx *= DAMPING; n.vy *= DAMPING; n.x += n.vx*0.016; n.y += n.vy*0.016; }
+      // межі вікна (з відступом)
+      const m = 40; n.x = clamp(n.x, m, W-m); n.y = clamp(n.y, m, H-m);
+    }
+  }
+
+  // ==========================
+  // РЕНДЕР: позиції та лінії
+  // ==========================
+  function drawLines(){
+    canvas.width = W; canvas.height = H; // очищає і масштабує
+    ctx.clearRect(0,0,W,H);
+    ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,.55)';
+    ctx.beginPath();
+    for(const e of edges){
+      const {a,b} = e; // пряма лінія або ніжна кривулька
+      const mx = (a.x + b.x)/2, my = (a.y + b.y)/2 - 30; // контрольна точка для Q
+      ctx.moveTo(a.x, a.y);
+      ctx.quadraticCurveTo(mx, my, b.x, b.y);
+    }
+    ctx.stroke();
+  }
+
+  function updateDom(){ for(const n of nodes) positionEl(n); }
+
+  // ==========================
+  // ЦИКЛ АНІМАЦІЇ
+  // ==========================
+  function frame(){ stepPhysics(); updateDom(); drawLines(); requestAnimationFrame(frame); }
+  requestAnimationFrame(frame);
+
+  // ==========================
+  // СЛУЖБОВІ
+  // ==========================
+  addEventListener('resize', ()=>{ W=innerWidth; H=innerHeight; canvas.width=W; canvas.height=H; });
+  document.getElementById('reset').addEventListener('click', ()=>{
+    // Розкинути теми колом довкола центру
+    const topics = nodes.filter(n=>n.type==='topic');
+    topics.forEach((n,i)=>{ const a=-Math.PI/2+i*(2*Math.PI/topics.length); n.x=W/2+Math.cos(a)*R; n.y=H/2+Math.sin(a)*R; n.vx=n.vy=0; });
+  });
+
+  </script>
+
+  
+  <!-- Пасхалка (відео) -->
+  <div id="easter-egg">
+    <div class="egg-inner">
+      <iframe id="egg-player" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+      <button id="egg-close" aria-label="Закрити">&times;</button>
+    </div>
+  </div>
+
+  <style>
+    #easter-egg {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.75);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .35s ease;
+    }
+    #easter-egg.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #easter-egg .egg-inner{
+      position: relative;
+      width: min(92vw, 900px);
+      aspect-ratio: 16/9;
+      background: #000;
+      border-radius: 14px;
+      box-shadow: 0 16px 60px rgba(0,0,0,.8);
+      overflow: hidden;
+    }
+    #easter-egg iframe{
+      position:absolute;
+      inset:0;
+      width: 100%;
+      height: 100%;
+    }
+    #egg-close{
+      position:absolute;
+      top:8px; right:10px;
+      font-size: 28px;
+      line-height: 1;
+      border: none;
+      background: rgba(0,0,0,.4);
+      color: #fff;
+      border-radius: 10px;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+    #egg-close:hover{ background: rgba(255,255,255,.15); }
+  </style>
+
+
+
+  
+  <script>
+    // Пасхалка: 3 кліки по центральній бульбашці або по кнопці "Скинути розкладку"
+    (function(){
+      const egg = document.getElementById('easter-egg');
+      const player = document.getElementById('egg-player');
+      const closeBtn = document.getElementById('egg-close');
+      // Відео: перетворюємо на embed-URL з автозапуском
+      const YT_EMBED = "https://www.youtube.com/embed/qCxoT_dDmpc?autoplay=1&rel=0";
+
+      function showEgg(){
+        if(!egg.classList.contains('show')){
+          player.src = YT_EMBED;
+          egg.classList.add('show');
+        }
+      }
+      function hideEgg(){
+        egg.classList.remove('show');
+        // очищаємо src, щоб зупинити відтворення
+        player.src = "";
+      }
+      egg.addEventListener('click', (e)=>{
+        if(e.target === egg) hideEgg();
+      });
+      closeBtn.addEventListener('click', hideEgg);
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') hideEgg(); });
+
+      // універсальний лічильник для елемента
+      function attachTripleClick(el){
+        if(!el) return;
+        let clicks = 0;
+        let timer = null;
+        el.addEventListener('click', ()=>{
+          clicks++;
+          if(timer) clearTimeout(timer);
+          timer = setTimeout(()=>{ clicks = 0; }, 600);
+          if(clicks >= 3){
+            clicks = 0;
+            showEgg();
+          }
+        });
+      }
+
+      // 1) Спроба знайти центр, коли він уже існує
+      function getCenterNodeEl(){
+        // Вузол центру створюється через makeNode з id='center'.
+        // У DOM у елемента немає явного id, тож знайдемо його через текст заголовка.
+        const nodes = Array.from(document.querySelectorAll('.node .title'));
+        const title = 'Міжнародні конференції після Першої світової війни';
+        const titleEl = nodes.find(t => t.textContent.trim() === title);
+        return titleEl ? titleEl.closest('.node') : null;
+      }
+
+      // 2) Якщо не знайдено одразу — пробуємо ще кілька разів
+      let retries = 0;
+      const interval = setInterval(()=>{
+        const centerEl = getCenterNodeEl();
+        if(centerEl){
+          attachTripleClick(centerEl);
+          clearInterval(interval);
+        }else if(++retries > 60){ // ~6 секунд
+          clearInterval(interval);
+        }
+      }, 100);
+
+      // 3) Альтернативний тригер: потрійний клік по кнопці "Скинути розкладку"
+      const resetBtn = document.getElementById('reset');
+      attachTripleClick(resetBtn);
+    })();
+  </script>
+
+
+</body>
+</html>
